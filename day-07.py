@@ -24,7 +24,7 @@ def parse_rule(line):
 
 rules = {}
 for line in data:
-    rules |= parse_rule(line)
+    rules.update(parse_rule(line))
 
 print(f'Loaded {len(rules)} rules')
 #pprint(rules)
