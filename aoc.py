@@ -16,11 +16,11 @@ from pprint import pprint
 def part_1(data):
     raise NotImplementedError()
 
-def part_1(data):
+def part_2(data):
     raise NotImplementedError()
 
-FORMAT_1 = '{}'
-FORMAT_2 = '{}'
+FORMAT_1 = '{{}}'
+FORMAT_2 = '{{}}'
 
 TEST_CASE_1 = []
 TEST_CASE_2 = []
