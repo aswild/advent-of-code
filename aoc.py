@@ -40,9 +40,11 @@ def create_template(days):
 
 def run_part(mod, part, data):
     if (func := getattr(mod, f'part_{part}', None)) is not None:
-        return func(data)
-    else:
-        return '[not implemented]'
+        try:
+            return func(data)
+        except NotImplementedError:
+            pass
+    return '[not implemented]'
 
 def run_test_part(mod, part):
     ok = True
