@@ -2,21 +2,6 @@ import re, pprint
 from dataclasses import dataclass
 from enum import Enum
 
-with open('data/08.txt') as fp:
-    data = fp.read()
-
-_data = """
-nop +0
-acc +1
-jmp +4
-acc +3
-jmp -3
-acc -99
-acc +1
-jmp -4
-acc +6
-""".strip()
-
 class OP(Enum):
     ACC = 1
     JMP = 2
@@ -103,24 +88,41 @@ class VM:
         assert inst is self.code[pc]
         return True
 
+def part_1(data):
+    vm = VM(data)
+    vm.run()
+    print(f'Ran {vm.count} instructions')
+    return vm.acc
 
-print('Part A')
-vm = VM(data)
-vm.run()
-print(f'Ran {vm.count} instructions with final accumulator {vm.acc}');
+def part_2(data):
+    vm = VM(data)
+    # for all the instructions
+    for i in range(len(vm.code)):
+        # try to flip the current instruction
+        if vm.flip_inst(i):
+            # run the test
+            vm.reset()
+            if vm.run():
+                # yay
+                print(f'Terminated after flipping pc={i} to {vm.code[i]}')
+                return vm.acc
+            # it still looped, flip it back and try again
+            vm.flip_inst(i)
 
-print('\nPart B')
-vm = VM(data)
-# for all the instructions
-for i in range(len(vm.code)):
-    # try to flip the current instruction
-    if vm.flip_inst(i):
-        # run the test
-        vm.reset()
-        if vm.run():
-            # yay
-            print(f'Terminated after flipping pc={i} to {vm.code[i]}')
-            print(f'Final acc was {vm.acc}')
-            break
-        # it still looped, flip it back and try again
-        vm.flip_inst(i)
+FORMAT_1 = 'final accumulator {}'
+FORMAT_2 = FORMAT_1
+
+TEST_CODE = """\
+nop +0
+acc +1
+jmp +4
+acc +3
+jmp -3
+acc -99
+acc +1
+jmp -4
+acc +6
+"""
+
+TEST_CASE_1 = [(TEST_CODE, 5)]
+TEST_CASE_2 = [(TEST_CODE, 8)]
