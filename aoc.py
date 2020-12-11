@@ -38,6 +38,35 @@ def create_template(days):
         except OSError as e:
             return f'Error writing {filename}: {e}'
 
+def download_input(days):
+    # lazy import so requests is only required here and not to run the puzzles
+    import requests
+    home = os.environ.get('HOME')
+    if not home:
+        return 'HOME is not set in the environment'
+
+    try:
+        with open(f'{home}/.config/aoc-session-cookie') as fp:
+            session_cookie = fp.read().strip()
+    except OSError as e:
+        return f'Error reading session cookie file: {e}'
+
+    headers = {'Cookie': f'session={session_cookie}'}
+    for day in days:
+        filename = os.path.join(f'data/{day:02}.txt')
+        print(f'Downloaded data for day {day}')
+        if os.path.exists(filename):
+            print(f'Warning: data file {filename} already exists. Re-downloading')
+        try:
+            resp = requests.get(f'https://adventofcode.com/2020/day/{day}/input', headers=headers)
+            resp.raise_for_status()
+            with open(filename, 'w') as fp:
+                fp.write(resp.text)
+        except requests.HTTPError as e:
+            return f'Error getting puzzle input: {e}'
+        except OSError as e:
+            return f'Error writing puzzle input: {e}'
+
 def run_part(mod, part, data):
     if (func := getattr(mod, f'part_{part}', None)) is not None:
         try:
@@ -101,12 +130,20 @@ def run_days(days, test):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--new', action='store_true', help='create a new day template')
+    parser.add_argument('-d', '--download', action='store_true',
+                        help='download input data (store session cookie in ~/.config/aoc-session-cookie)')
     parser.add_argument('-t', '--test', action='store_true', help='run test case')
     parser.add_argument('days', nargs='+', type=int, metavar='DAY', help='day number')
     args = parser.parse_args()
 
-    if args.new:
-        return create_template(args.days)
+    if args.new or args.download:
+        err = []
+        if args.new and (e := create_template(args.days)) is not None:
+            err.append(e)
+        if args.download and (e := download_input(args.days)) is not None:
+            err.append(e)
+        if err:
+            return '\n'.join(err)
     else:
         return run_days(args.days, args.test)
 
