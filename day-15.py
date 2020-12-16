@@ -5,55 +5,27 @@ import itertools, re
 from dataclasses import dataclass
 from pprint import pprint
 
-class Pair:
-    def __init__(self, a=None, b=None):
-        """ A two-item queue. Element 'a' is the most recent, 'b' is the old value """
-        self.a = a
-        self.b = b
-
-    def __str__(self):
-        return f'Pair({self.a}, {self.b})'
-
-    def __repr__(self):
-        return str(self)
-
-    def push(self, num):
-        self.b = self.a
-        self.a = num
-
-    @property
-    def once(self):
-        return self.b is None
-
-    @property
-    def diff(self):
-        return self.a - self.b
-
 class FastMemoryGame:
     def __init__(self, start_nums):
         assert len(start_nums) == len(set(start_nums)) # starting numbers must be unique
         self.history = {}
-        for i, n in enumerate(start_nums):
+        for i, n in enumerate(start_nums[:-1]):
             #print(f'turn {i+1}, number {n}')
-            self.history[n] = Pair(i + 1)
+            self.history[n] = i + 1
 
         # turn is the number of completed turns, or the turn number where self.last_num was said
         self.turn = len(start_nums)
         self.last_num = start_nums[-1]
 
     def step(self):
-        if self.history[self.last_num].once:
-            # previous number was said only once
-            new = 0
+        if self.last_num in self.history:
+            new = self.turn - self.history[self.last_num]
         else:
-            new = self.history[self.last_num].diff
+            new = 0
 
+        self.history[self.last_num] = self.turn
         self.turn += 1
         self.last_num = new
-        if new in self.history:
-            self.history[new].push(self.turn)
-        else:
-            self.history[new] = Pair(self.turn)
 
 def part_1(data, turn_count=2020):
     start_nums = [int(x) for x in data.strip().split(',')]
