@@ -3,6 +3,7 @@
 
 import itertools, re
 from dataclasses import dataclass
+from functools import reduce
 from pprint import pprint
 
 def parse_input(data):
@@ -51,12 +52,19 @@ class Rules:
         hi2 = int(m.group(5))
         self.fields[field] = ((lo1, hi1), (lo2, hi2))
 
-    def valid_fields(self, n):
+    def check(self, name, val):
+        r = self.fields[name]
+        return (r[0][0] <= val <= r[0][1]) or (r[1][0] <= val <= r[1][1])
+
+    def valid_fields(self, val, field_names=None):
         """ return a generator that yields names of fields which could be
-        allowed for the given number """
-        for f, r in self.fields.items():
-            if (r[0][0] <= n <= r[0][1]) or (r[1][0] <= n <= r[1][1]):
-                yield f
+        allowed for the given number. If field_names is set, look at only
+        these fields rather than all fields in these rules. """
+        if field_names is None:
+            field_names = self.fields.keys()
+        for name in field_names:
+            if self.check(name, val):
+                yield name
 
 
 def part_1(data):
@@ -72,39 +80,74 @@ def part_1(data):
 def part_2(data):
     rules, mine, others = parse_input(data)
     def ticket_valid(ticket):
-        return all(rules.valid_fields(n) for n in ticket)
+        return all(list(rules.valid_fields(n)) for n in ticket)
+
     # filter out invalid tickets
-    others = [t for t in others if ticket_valid(t)]
+    tickets = [t for t in others if ticket_valid(t)]
 
     n_fields = len(mine)
-    for ticket in others:
+    for ticket in tickets:
         assert len(ticket) == n_fields
 
-    # [set()] * n_fields would return a list of references to the same set,
-    # gotta do it this way to make a list of different sets.
-    # Start by assuming any index can be any field, then sieve down
-    possible_fields = [set(rules.fields.keys()) for _ in range(n_fields)]
+    #print(f'{rules.fields=}')
+    #print(f'{tickets=}')
 
-    for i, ticket in enumerate(others):
-        print(f'Ticket {i=}')
-        for j, val in enumerate(ticket):
-            possible_fields[j] &= set(rules.valid_fields(val))
-            print(f'field {j=} {val=} can be {possible_fields[j]=}')
-            if len(possible_fields[j]) == 1:
-                print(f'Field {j} must be {possible_fields[j]}')
+    # when we find a column that can only be one field, remove it from this set
+    avail_fields = set(rules.fields.keys())
 
+    col_fields = [None] * n_fields
 
-    # after all tickets have been processed, each index should only have one possible field
-    for i, fields in enumerate(possible_fields):
-        if len(fields) != 1:
-            print(f'ERROR: field index {i} has multiple options: {fields}')
+    for col in range(n_fields):
+        # for each column, check that column of all tickets and see which fields it could be
+        fields = []
+        for f in avail_fields:
+            #print(f'column {col}: check field {f}')
+            valid = True
+            for t in tickets:
+                if not rules.check(f, t[col]):
+                    #print(f'value {t[col]} cannot be field {f}')
+                    valid = False
+                    break
+            if valid:
+                fields.append(f)
 
-    # possible_fields is now a list of length-1 sets, flatten that structure
-    field_map = [fields.pop() for fields in possible_fields]
-    print(f'{field_map=}')
+        if len(fields) == 0:
+            print(f'ERROR: column {col} has no valid fields!')
+            print([t[col] for t in tickets])
+
+        col_fields[col] = fields
+        #print(f'fields for column {col} = {fields}')
+
+    #print('fields before filtering:')
+    #pprint(col_fields)
+
+    while True:
+        done = True
+        for col in range(n_fields):
+            # if we find a column that can be only one field, remove that field from all other cols
+            if len(col_fields[col]) == 1:
+                field = col_fields[col][0]
+                for c in range(n_fields):
+                    # this loop is super wasteful but whatever
+                    if c != col and field in col_fields[c]:
+                        col_fields[c].remove(field)
+                        done = False
+        if done:
+            break
+
+    assert all(len(f) == 1 for f in col_fields)
+    col_fields = [f[0] for f in col_fields]
+    print('fields after filtering:')
+    pprint(col_fields)
+
+    departure_cols = [col for col, field in enumerate(col_fields) if field.startswith('departure')]
+    if len(departure_cols) != 6:
+        return None
+    departure_product = reduce(lambda a, b: a * b, (mine[col] for col in departure_cols))
+    return departure_product
 
 FORMAT_1 = 'ticket scanning error rate = {}'
-FORMAT_2 = '{}'
+FORMAT_2 = 'product of departure fields is {}'
 
 test_data = """\
 class: 1-3 or 5-7
