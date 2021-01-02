@@ -1,7 +1,7 @@
 use std::env;
 use std::fs::File;
+use std::io::{BufWriter, Write};
 use std::path::Path;
-use std::io::{Write, BufWriter};
 
 /// reverse the lower 10 bits in the input
 #[rustfmt::skip]

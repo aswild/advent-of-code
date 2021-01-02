@@ -8,7 +8,7 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use lazy_static::lazy_static;
 use regex::Regex;
 
-const TILE_SIZE: usize = 10;
+pub const TILE_SIZE: usize = 10;
 
 // this defines static REV10_TABLE: [u16; 1024].
 // Used in Edge::flip, but the include! macro has to be called here in global scope rather than
@@ -16,14 +16,14 @@ const TILE_SIZE: usize = 10;
 include!(concat!(env!("OUT_DIR"), "/rev10_table.rs"));
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-enum Point {
+pub enum Point {
     Black,
     White,
 }
 
 impl Point {
     #[inline]
-    fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             Self::Black => ".",
             Self::White => "#",
@@ -57,7 +57,7 @@ impl fmt::Display for Point {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum Orientation {
+pub enum Orientation {
     /// the original orientation. orig north side faces north
     North,
     /// 90 deg clockwise rotation. orig north side faces east
@@ -96,11 +96,11 @@ enum Orientation {
 /// South edge is 0011100111 = 231 = 0x0e7
 /// West  edge is 0111110010 = 498 = 0xf12
 #[derive(Clone, Copy, Eq, PartialEq)]
-struct Edge(u16);
+pub struct Edge(u16);
 
 impl Edge {
     #[inline]
-    fn flip(&self) -> Edge {
+    pub fn flip(&self) -> Edge {
         Edge(REV10_TABLE[self.0 as usize])
     }
 }
@@ -169,15 +169,15 @@ impl FromStr for Edge {
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-struct TileEdges {
-    n: Edge,
-    e: Edge,
-    s: Edge,
-    w: Edge,
+pub struct TileEdges {
+    pub n: Edge,
+    pub e: Edge,
+    pub s: Edge,
+    pub w: Edge,
 }
 
 impl TileEdges {
-    fn orient(&self, o: Orientation) -> TileEdges {
+    pub fn orient(&self, o: Orientation) -> TileEdges {
         match o {
             Orientation::North => *self,
             Orientation::East => TileEdges {
@@ -227,9 +227,9 @@ impl TileEdges {
 }
 
 #[derive(Clone, Copy, Default, Eq, PartialEq)]
-struct Tile {
-    id: usize,
-    points: [[Point; TILE_SIZE]; TILE_SIZE],
+pub struct Tile {
+    pub id: usize,
+    pub points: [[Point; TILE_SIZE]; TILE_SIZE],
 }
 
 impl fmt::Debug for Tile {
@@ -273,7 +273,9 @@ impl FromStr for Tile {
             .context("Failed to parse tile id number")?;
 
         for i in 0..TILE_SIZE {
-            let line = lines.next().ok_or_else(|| anyhow!("Incomplete data for tile {}", tile.id))?;
+            let line = lines
+                .next()
+                .ok_or_else(|| anyhow!("Incomplete data for tile {}", tile.id))?;
             tile.points[i] = Point::parse_row(line)
                 .with_context(|| format!("Failed parsing row {} of tile {}", i, tile.id))?;
         }
@@ -283,7 +285,7 @@ impl FromStr for Tile {
 }
 
 impl Tile {
-    fn edges(&self) -> TileEdges {
+    pub fn edges(&self) -> TileEdges {
         // lots of unwrapping here, safe because Tile always has the right format.
         // north and south edges are easy, just use the first and last rows
         let n = self.points[0].as_ref().try_into().unwrap();
