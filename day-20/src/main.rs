@@ -144,7 +144,6 @@ impl TryFrom<&[Point]> for Edge {
     }
 }
 
-/// XXX: not sure if this is really needed
 impl FromStr for Edge {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -369,5 +368,61 @@ mod tests {
         assert_eq!(edges.e.0, 0b0101010011);
         assert_eq!(edges.s.0, 0b1001101101);
         assert_eq!(edges.w.0, 0b0001001011);
+    }
+
+    #[test]
+    fn edge_flip() {
+        let edges = TILE_PARSED.edges();
+        assert_eq!(edges.n.flip().to_string().as_str(), "...#...##.");
+        assert_eq!(edges.e.flip().to_string().as_str(), "##..#.#.#.");
+        assert_eq!(edges.s.flip().to_string().as_str(), "#.##.##..#");
+        assert_eq!(edges.w.flip().to_string().as_str(), "##.#..#...");
+    }
+
+    #[test]
+    fn reorient() {
+        static ORIENTATIONS: [Orientation; 8] = [
+            Orientation::North,
+            Orientation::East,
+            Orientation::South,
+            Orientation::West,
+            Orientation::FlipNorth,
+            Orientation::FlipEast,
+            Orientation::FlipSouth,
+            Orientation::FlipWest,
+        ];
+
+        // array of edges (as strings) as returned by TileEdges::orient
+        static REORIENTED_STR: [[&'static str; 4]; 8] = [
+            // North - same as original
+            [".##...#...", ".#.#.#..##", "#..##.##.#", "...#..#.##"],
+            // East - 90 CW
+            ["##.#..#...", ".##...#...", "##..#.#.#.", "#..##.##.#"],
+            // South - 180
+            ["#.##.##..#", "##.#..#...", "...#...##.", "##..#.#.#."],
+            // West - 90 CCW
+            [".#.#.#..##", "#.##.##..#", "...#..#.##", "...#...##."],
+            // FlipNorth - horizontal flip across vertical axis
+            ["...#...##.", "...#..#.##", "#.##.##..#", ".#.#.#..##"],
+            // FlipEast - horizontal flip then 90 CW
+            ["##..#.#.#.", "...#...##.", "##.#..#...", "#.##.##..#"],
+            // FlipSouth - vertical flip across horizontal axis
+            ["#..##.##.#", "##..#.#.#.", ".##...#...", "##.#..#..."],
+            // FlipWest - vertical flip then 90 CW (or horiz flip then 90CCW)
+            ["...#..#.##", "#..##.##.#", ".#.#.#..##", ".##...#..."],
+        ];
+
+        let edges = TILE_PARSED.edges();
+        for i in 0..8 {
+            let oe = edges.orient(ORIENTATIONS[i]);
+            let n = REORIENTED_STR[i][0].parse().unwrap();
+            let e = REORIENTED_STR[i][1].parse().unwrap();
+            let s = REORIENTED_STR[i][2].parse().unwrap();
+            let w = REORIENTED_STR[i][3].parse().unwrap();
+            assert_eq!(oe.n, n);
+            assert_eq!(oe.e, e);
+            assert_eq!(oe.s, s);
+            assert_eq!(oe.w, w);
+        }
     }
 }
