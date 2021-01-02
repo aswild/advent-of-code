@@ -8,6 +8,7 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use lazy_static::lazy_static;
 use regex::Regex;
 
+mod grid;
 mod types;
 
 fn run() -> Result<()> {
