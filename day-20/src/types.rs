@@ -1,5 +1,6 @@
 #![allow(dead_code)] // XXX
 
+use std::cmp::Ordering;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::str::FromStr;
@@ -95,7 +96,7 @@ pub enum Orientation {
 /// East  edge is 0001011001 =  89 = 0x059
 /// South edge is 0011100111 = 231 = 0x0e7
 /// West  edge is 0111110010 = 498 = 0xf12
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, Eq, PartialEq)]
 pub struct Edge(u16);
 
 impl Edge {
@@ -167,7 +168,7 @@ impl FromStr for Edge {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, Eq, PartialEq)]
 pub struct TileEdges {
     pub n: Edge,
     pub e: Edge,
@@ -225,9 +226,34 @@ impl TileEdges {
     }
 }
 
+/// Representation of a Tile's id and edges, sortable by ID
+#[derive(Clone, Copy, Default, Eq)]
+pub struct TileIdEdges {
+    pub id: u32,
+    pub edges: TileEdges,
+}
+
+impl Ord for TileIdEdges {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for TileIdEdges {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for TileIdEdges {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
 #[derive(Clone, Copy, Default, Eq, PartialEq)]
 pub struct Tile {
-    pub id: usize,
+    pub id: u32,
     pub points: [[Point; TILE_SIZE]; TILE_SIZE],
 }
 
@@ -256,7 +282,7 @@ impl FromStr for Tile {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
-            static ref ID_RE: Regex = Regex::new(r"^Tile (\d+)$").unwrap();
+            static ref ID_RE: Regex = Regex::new(r"^Tile (\d+):$").unwrap();
         }
 
         let mut tile = Tile::default();
@@ -315,7 +341,7 @@ mod tests {
     use super::*;
 
     static TILE_STR: &str = "\
-        Tile 1171\n\
+        Tile 1171:\n\
         .##...#...\n\
         .........#\n\
         ....##....\n\
